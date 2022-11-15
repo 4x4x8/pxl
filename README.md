@@ -59,3 +59,6 @@ local lib = require "pxl"
 local obj = lib.new(term, colors.black)
 obj:render()
 ```
+
+# BIG THANKS TO:
+9551-Dev for explaining me all this shit.
