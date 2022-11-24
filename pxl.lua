@@ -175,17 +175,16 @@ function pxl:render()
             layer3[x],layer3[xp1]
             n = n+1
             
-            local char, fg, bg = " ",1,b11
-            if not (b21 == b11
-                and b12 == b11
-                and b22 == b11
-                and b13 == b11
-                and b23 == b11) then
-                char,fg,bg = build_drawing_char(b11,b21,b12,b22,b13,b23)
-            end
-
-            if #self.char_canvas[y_line][n][1] ~= 0 then
-                char, fg, bg = self.char_canvas[y_line][n][1], self.char_canvas[y_line][n][2], self.char_canvas[y_line][n][3]
+            local char, fg, bg = self.char_canvas[y_line][n][1], self.char_canvas[y_line][n][2], self.char_canvas[y_line][n][3]
+            if #char == 0 then
+                char, fg, bg = " ",1,b11
+                if not (b21 == b11
+                    and b12 == b11
+                    and b22 == b11
+                    and b13 == b11
+                    and b23 == b11) then
+                    char,fg,bg = build_drawing_char(b11,b21,b12,b22,b13,b23)
+                end
             end
 
             char_string[n] = char
@@ -200,7 +199,5 @@ function pxl:render()
         )
     end
 end
-
--- i need this to commit changes on github, lmao
 
 return pxl
