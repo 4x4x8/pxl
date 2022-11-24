@@ -1,6 +1,7 @@
 local pxl = {}
 
 local t_sort, t_cat, s_char = table.sort, table.concat, string.char
+local CEIL = math.ceil
 local function sort(a,b) return a[2] > b[2] end
 
 local distances = {
@@ -84,15 +85,34 @@ local function build_drawing_char(a,b,c,d,e,f)
     return s_char(n), sorted[1][1], array[6]
 end
 
-function pxl.restore(PXL, bg)
-    local c = {}
-    for _y=1, PXL.s_height do
-        for _x=1, PXL.s_width do
-            if not c[_y] then c[_y] = {} end
-            c[_y][_x] = bg
+local function create_buffer(x,y, val)
+    local buffer = {}
+    for _y=1, y do
+        for _x=1, x do
+            if not buffer[_y] then buffer[_y] = {} end
+            buffer[_y][_x] = val or 0
         end
     end
-    PXL.canvas = c
+    return buffer
+end
+
+local function split(inputstr, sep)
+    if sep == nil then
+        sep = "%s"
+    end
+    local t={}
+    for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+        table.insert(t, str)
+    end
+    return t
+end
+
+function pxl.restore(PXL, bg)
+    PXL.canvas = create_buffer(PXL.s_width, PXL.s_height, bg or colors.black)
+end
+
+function pxl.restore_chars(PXL, char, fg, bg)
+    PXL.char_canvas = create_buffer(PXL.width, PXL.height, {char or "", fg or colors.white, bg or colors.black})
 end
 
 
@@ -103,6 +123,7 @@ function pxl.new(term, background)
     self.width, self.height = term.getSize()
     self.s_width, self.s_height = self.width*2, self.height*3
     pxl.restore(self, self.background)
+    pxl.restore_chars(self)
 
     return self
 end
@@ -111,11 +132,30 @@ function pxl:set_pixel(x, y, color)
     self.canvas[y][x] = color
 end
 
+function pxl:write_text(x,y, text, bounds_check, bg, fg)
+    x = x-1
+    local lines = split(text, "\n")
+    for _y=1, #lines do
+        for _x=1, #lines[_y] do
+            if bounds_check and self:is_in_bounds(_x, _y) then 
+                self.char_canvas[y+_y][x+_x] = {lines[_y]:sub(_x, _x), fg, bg}
+            else
+                self.char_canvas[y+_y][x+_x] = {lines[_y]:sub(_x, _x), fg, bg}
+            end
+        end
+    end
+end
+
+function pxl:is_in_bounds(x,y)
+    return (x >= 1 and x <= self.width*2) and (y >= 1 and y <= self.height*3)
+end
+
 function pxl:render()
     local t = self.term
     local t_blit, t_setcursor = t.blit, t.setCursorPos
     local canvas = self.canvas
     local y_line = 0
+
     for y=1, self.s_height, 3 do
         y_line = y_line + 1
 
@@ -133,7 +173,8 @@ function pxl:render()
             layer1[x],layer1[xp1],
             layer2[x],layer2[xp1],
             layer3[x],layer3[xp1]
-
+            n = n+1
+            
             local char, fg, bg = " ",1,b11
             if not (b21 == b11
                 and b12 == b11
@@ -142,7 +183,11 @@ function pxl:render()
                 and b23 == b11) then
                 char,fg,bg = build_drawing_char(b11,b21,b12,b22,b13,b23)
             end
-            n = n+1
+
+            if #self.char_canvas[y_line][n][1] ~= 0 then
+                char, fg, bg = self.char_canvas[y_line][n][1], self.char_canvas[y_line][n][2], self.char_canvas[y_line][n][3]
+            end
+
             char_string[n] = char
             fg_string  [n] = to_blit[fg]
             bg_string  [n] = to_blit[bg]
@@ -150,8 +195,8 @@ function pxl:render()
         t_setcursor(1,y_line)
         t_blit(
             t_cat(char_string, ""),
-            t_cat(fg_string, ""),
-            t_cat(bg_string, "")
+            t_cat(fg_string,   ""),
+            t_cat(bg_string,   "")
         )
     end
 end
