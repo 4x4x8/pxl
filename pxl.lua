@@ -133,18 +133,17 @@ function pxl:set_pixel(x, y, color)
 end
 
 function pxl:write_text(x,y, text, bounds_check, bg, fg)
-    x = x-1
     local lines = split(text, "\n")
     for _y=1, #lines do
         for _x=1, #lines[_y] do
-            if bounds_check and self:is_in_bounds(_x, _y) then 
-                self.char_canvas[y+_y][x+_x] = {lines[_y]:sub(_x, _x), fg, bg}
+            if bounds_check and self:is_in_bounds(_x-1, _y-1) then 
+                self.char_canvas[y+_y-1][x+_x-1] = {lines[_y]:sub(_x, _x), fg, bg}
             else
-                self.char_canvas[y+_y][x+_x] = {lines[_y]:sub(_x, _x), fg, bg}
+                self.char_canvas[y+_y-1][x+_x-1] = {lines[_y]:sub(_x, _x), fg, bg}
             end
         end
     end
-end
+end 
 
 function pxl:is_in_bounds(x,y)
     return (x >= 1 and x <= self.width*2) and (y >= 1 and y <= self.height*3)
